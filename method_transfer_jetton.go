@@ -33,15 +33,6 @@ func (w *Wallet) TransferJetton(
 		destinationAddress := address.MustParseAddr(item.Wallet)
 		responseAddress := address.MustParseAddr(fromAddress)
 
-		var comment *cell.Cell
-		// If a message is provided, create a comment cell to store it
-		if item.Message != "" {
-			comment = cell.BeginCell().
-				MustStoreUInt(0, 32).               // Store a zeroed header or type marker
-				MustStoreStringSnake(item.Message). // Store the message in a snake-encoded string format
-				EndCell()                           // Finalize the comment cell
-		}
-
 		// Construct an internal message for transferring Jettons
 		messages = append(messages, &wallet.Message{
 			Mode: wallet.PayGasSeparately + wallet.IgnoreErrors, // Set message mode to pay gas separately and allow ignoring errors
@@ -59,7 +50,10 @@ func (w *Wallet) TransferJetton(
 					MustStoreBoolBit(false).                                // No custom payload, indicated by false
 					MustStoreCoins(1).                                      // Set coins for the forward amount
 					MustStoreBoolBit(true).                                 // Indicate that custom payload follows
-					MustStoreRef(comment).
+					MustStoreRef(cell.BeginCell().
+							MustStoreUInt(0, 32).               // Store a zeroed header or type marker
+							MustStoreStringSnake(item.Message). // Store the message in a snake-encoded string format
+							EndCell()).
 					EndCell(), // Finalize the message body
 			},
 		})
